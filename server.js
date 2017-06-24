@@ -14,19 +14,28 @@ const {Restaurant} = require('./models');
 const app = express();
 app.use(bodyParser.json());
 
-
-// GET requests to /restaurants => return 10 restaurants
 app.get('/restaurants', (req, res) => {
+  
+  // checks for query params against a list of valid queryable fields
+  const queryableFields = ['cuisine', 'borough'];
+  let filter = {};
+  for (field in req.query) {
+    if (queryableFields.indexOf(field) > -1) {
+      filter[field] = req.query[field];
+    }
+  };
+
   Restaurant
-    .find()
-    // we're limiting because restaurants db has > 25,000
-    // documents, and that's too much to process/return
+    .find(filter)
+    // find first 10 document
     .limit(10)
-    // `exec` returns a promise
+    // querying database is async so we want to return a promise
+    // .exec makes our query return a promise
     .exec()
-    // success callback: for each restaurant we got back, we'll
-    // call the `.apiRepr` instance method we've created in
-    // models.js in order to only expose the data we want the API return.
+    // upon successful query we recieve an array of restaurants
+    // map through array.
+    // for each restaurant call apiRepr, return representation of doc w/ only props we want
+    // assign array to restaurant property and return object as json in HTTP response
     .then(restaurants => {
       res.json({
         restaurants: restaurants.map(
@@ -40,13 +49,15 @@ app.get('/restaurants', (req, res) => {
     });
 });
 
-// can also request by ID
+// handle requests for individual restaurants by id
 app.get('/restaurants/:id', (req, res) => {
   Restaurant
-    // this is a convenience method Mongoose provides for searching
-    // by the object _id property
+    // query for restaurant by _id property in document
     .findById(req.params.id)
+    // make query return a promise
     .exec()
+    // recieve a single restaurant
+    // call apiRepr to return representation of document w/ only props we want
     .then(restaurant =>res.json(restaurant.apiRepr()))
     .catch(err => {
       console.error(err);
@@ -109,7 +120,7 @@ app.put('/restaurants/:id', (req, res) => {
     // all key/value pairs in toUpdate will be updated -- that's what `$set` does
     .findByIdAndUpdate(req.params.id, {$set: toUpdate})
     .exec()
-    .then(restaurant => res.status(204).end())
+    .then(restaurant => res.status(202).json(restaurant.apiRepr()))
     .catch(err => res.status(500).json({message: 'Internal server error'}));
 });
 
@@ -173,4 +184,6 @@ if (require.main === module) {
   runServer().catch(err => console.error(err));
 };
 
+// we export these variables and methods for other files in our app that need them, like test files
+// in this cose the above if check will not pass and we call runServer from our test files instead
 module.exports = {app, runServer, closeServer};

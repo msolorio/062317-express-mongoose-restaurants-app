@@ -8,6 +8,11 @@ const restaurantSchema = mongoose.Schema({
   address: {
     building: String,
     // coord will be an array of string values
+
+    // coord: {
+    //   lat: Number,
+    //   lon: Number
+    // }
     coord: [String],
     street: String,
     zipcode: String
@@ -20,11 +25,8 @@ const restaurantSchema = mongoose.Schema({
   }]
 });
 
-// *virtuals* (http://mongoosejs.com/docs/guide.html#virtuals)
-// allow us to define properties on our object that manipulate
-// properties that are stored in the database. Here we use it
-// to generate a human readable string based on the address object
-// we're storing in Mongo.
+// define a virtual property getter
+// we can access the addressString property on a restaurant document from within our app
 restaurantSchema.virtual('addressString').get(function() {
   return `${this.address.building} ${this.address.street}`.trim()});
 
@@ -34,9 +36,9 @@ restaurantSchema.virtual('grade').get(function() {
   return gradeObj.grade;
 });
 
-// this is an *instance method* which will be available on all instances
-// of the model. This method will be used to return an object that only
-// exposes *some* of the fields we want from the underlying data
+// define an instance method available on all instances of the model
+// method returns an object exposing some of the fields from the underlying data
+// only the fields we want
 restaurantSchema.methods.apiRepr = function() {
 
   return {
@@ -49,8 +51,11 @@ restaurantSchema.methods.apiRepr = function() {
   };
 }
 
-// note that all instance methods and virtual properties on our
-// schema must be defined *before* we make the call to `.model`.
+// we define methods and virtual properties on the restaurantSchema before the call to mongoose.model
+
+// first arg to .model specifies which collection in our database that we will map this model to
+// creating a Restaurant model that will map to the 'Restaurant' collection in our database
+// using the restaurantSchemas
 const Restaurant = mongoose.model('Restaurant', restaurantSchema);
 
 module.exports = {Restaurant};
